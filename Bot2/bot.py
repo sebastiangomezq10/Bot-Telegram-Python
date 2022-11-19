@@ -1,5 +1,4 @@
 #########################################################
-import json
 from config import bot
 from telebot import types
 from time import sleep
@@ -17,6 +16,7 @@ bot.load_next_step_handlers()
 
 
 bot_data = {}
+()
 
 
 class Record:
@@ -67,8 +67,66 @@ def on_command_menu(message):
     itembtn1 = types.KeyboardButton('/imc')
     itembtn2 = types.KeyboardButton('/help')
     markup.add(itembtn1, itembtn2)
+    # print(message)
     bot.send_message(message.chat.id, "Selecciona una opción del menú:",
                      reply_markup=markup)
+
+
+@bot.message_handler(commands=['imc'])
+def on_command_imc(message):
+    response = bot.reply_to(message, "¿Cuál es tu estatura en metros?")
+    bot.register_next_step_handler(response, process_height_step)
+
+
+def process_height_step(message):
+    try:
+        height = float(message.text)
+        record = Record()
+        record.height = height
+        bot_data[message.chat.id] = record
+        response = bot.reply_to(message, '¿Cuál es tu peso en kilogramos?')
+        bot.register_next_step_handler(response, process_weight_step)
+    except Exception as e:
+        bot.reply_to(message, f"Algo terrible sucedió: {e}")
+
+
+def process_weight_step(message):
+    try:
+        weight = float(message.text)
+        record = bot_data[message.chat.id]
+        record.weight = weight
+        markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
+        markup.add('Male', 'Female', 'Other')
+        response = bot.reply_to(message, '¿Cuál es tu género?',
+                                reply_markup=markup)
+        bot.register_next_step_handler(response, process_gender_step)
+    except Exception as e:
+        bot.reply_to(message, f"Algo terrible sucedió: {e}")
+
+
+def process_gender_step(message):
+    gender = message.text
+    record = bot_data[message.chat.id]
+    record.gender = gender
+    imc(message)
+
+
+def imc(message):
+    record = bot_data[message.chat.id]
+    imc = record.weight / pow(record.height, 2)
+    answer = f"Data = (Height: {record.height}, Weight: {record.weight}, Gender:   {record.gender})\nIMC = {imc} \n Tu IMC indica {clasificacionIMC(imc)}"
+    bot.reply_to(message, answer)
+
+
+def clasificacionIMC(imc):
+    if imc < 18.50:
+        return "peso bajo"
+    elif imc > 18.50 and imc < 24.99:
+        return "normalidad"
+    elif imc >= 25 and imc <= 30:
+        return "estas rellenito"
+    elif imc >= 30:
+        return "estas Fuera del alcance"
 
 
 @bot.message_handler(func=lambda message: True)
