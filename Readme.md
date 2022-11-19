@@ -27,3 +27,5 @@ $ npm -g install nodemon
 $ python bot.py
 $ nodemon --exec python .\bot.py (nodemon)
 ```
+
+probando issues
